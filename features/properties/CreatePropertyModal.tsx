@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { propertyService } from './propertyService';
 import { useAuth } from '../auth/AuthContext';
+import { isSupabaseConfigured } from '../../lib/supabase';
 import { PGProperty } from '../../types/database';
 
 interface CreatePropertyModalProps {
@@ -44,6 +45,11 @@ export const CreatePropertyModal: React.FC<CreatePropertyModalProps> = ({
     }
     if (!contactPhone.trim()) {
       setError('Please provide a contact phone number');
+      return;
+    }
+
+    if (isSupabaseConfigured && !user?.id) {
+      setError('You must be signed in to create a property');
       return;
     }
 

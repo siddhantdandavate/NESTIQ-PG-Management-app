@@ -14,6 +14,7 @@ const DEFAULT_DEV_PROPERTY: PGProperty = {
   state: 'Karnataka',
   pincode: '560100',
   contact_phone: '+91 98765 43210',
+  is_active: true,
   created_by: 'dev-pg-admin',
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
@@ -46,13 +47,14 @@ export const propertyService = {
       if (error) throw error;
       return (data || []) as PGProperty[];
     } catch (err: any) {
-      console.warn('Supabase fetch properties error, falling back:', err.message);
-      return [DEFAULT_DEV_PROPERTY];
+      console.warn('Supabase fetch properties error:', err.message);
+      // In live Supabase mode, do NOT inject mock dev properties
+      return [];
     }
   },
 
   /**
-   * Create a new PG Property and establish the creator as property Admin
+   * Create a new PG Property and establish the creator as property Admin atomically
    */
   async createProperty(
     propertyData: {
@@ -78,6 +80,7 @@ export const propertyService = {
         state: propertyData.state?.trim() || 'Karnataka',
         pincode: propertyData.pincode?.trim() || null,
         contact_phone: propertyData.contact_phone?.trim() || null,
+        is_active: true,
         created_by: userId,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -106,7 +109,32 @@ export const propertyService = {
       return { property: newProp, membership: newMembership };
     }
 
-    // 1. Insert property into pg_properties
+    // 1. Attempt atomic creation via hardened RPC create_pg_property
+    try {
+      const { data: rpcData, error: rpcError } = await supabase.rpc('create_pg_property', {
+        p_name: propertyData.name.trim(),
+        p_address: propertyData.address?.trim() || null,
+        p_city: propertyData.city?.trim() || null,
+        p_state: propertyData.state?.trim() || null,
+        p_pincode: propertyData.pincode?.trim() || null,
+        p_contact_phone: propertyData.contact_phone?.trim() || null,
+      });
+
+      if (!rpcError && rpcData) {
+        const result = rpcData as { property: PGProperty; membership: PGMembership };
+        return {
+          property: result.property,
+          membership: result.membership,
+        };
+      }
+      if (rpcError) {
+        console.warn('RPC create_pg_property failed, trying direct insert fallback:', rpcError.message);
+      }
+    } catch (rpcEx: any) {
+      console.warn('create_pg_property RPC error, proceeding to fallback:', rpcEx.message);
+    }
+
+    // 2. Fallback to direct table operations for backwards compatibility
     const { data: propData, error: propError } = await supabase
       .from('pg_properties')
       .insert({
@@ -116,6 +144,7 @@ export const propertyService = {
         state: propertyData.state?.trim() || null,
         pincode: propertyData.pincode?.trim() || null,
         contact_phone: propertyData.contact_phone?.trim() || null,
+        is_active: true,
         created_by: userId,
       })
       .select()
@@ -123,7 +152,6 @@ export const propertyService = {
 
     if (propError) throw propError;
 
-    // 2. Insert admin membership into pg_memberships
     const { data: memData, error: memError } = await supabase
       .from('pg_memberships')
       .insert({

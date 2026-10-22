@@ -220,6 +220,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (isSupabaseConfigured) {
         await supabase.auth.signOut();
       }
+    } catch (err: any) {
+      console.warn('Sign out error:', err.message);
+    } finally {
       setSession(null);
       setUser(null);
       setProfile(null);
@@ -227,9 +230,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setMemberships([]);
       setActiveRole('none');
       setActivePropertyId(null);
-    } catch (err: any) {
-      console.warn('Sign out error:', err.message);
-    } finally {
       setIsLoading(false);
     }
   };
@@ -265,6 +265,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Development helper for testing role navigation before backend linking
   const setDevRole = (role: UserRole) => {
+    // Strictly disable any development role manipulation when Supabase is configured
+    if (isSupabaseConfigured) {
+      console.warn('Development role switching is strictly disabled when Supabase is configured.');
+      return;
+    }
     setActiveRole(role);
     if (role === 'super_admin') {
       setIsSuperAdmin(true);

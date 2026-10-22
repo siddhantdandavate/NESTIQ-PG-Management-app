@@ -14,6 +14,7 @@ import { CreatePropertyModal } from '../properties/CreatePropertyModal';
 import { EditPropertyModal } from '../properties/EditPropertyModal';
 import { PGProperty } from '../../types/database';
 import { formatPhone } from '../../lib/utils/formatters';
+import { isSupabaseConfigured } from '../../lib/supabase';
 
 export const AdminDashboard: React.FC = () => {
   const { profile, user, activeProperty, memberships, switchProperty, signOut } = useAuth();
@@ -26,6 +27,12 @@ export const AdminDashboard: React.FC = () => {
   const loadProperties = useCallback(async () => {
     setIsLoadingProps(true);
     try {
+      if (isSupabaseConfigured && !user?.id) {
+        setProperties([]);
+        setIsLoadingProps(false);
+        return;
+      }
+
       const userId = user?.id || 'dev-pg-admin';
       const list = await propertyService.fetchUserProperties(userId);
       setProperties(list);

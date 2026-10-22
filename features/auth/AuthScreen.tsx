@@ -11,10 +11,9 @@ import {
   Platform,
 } from 'react-native';
 import { useAuth } from './AuthContext';
-import { UserRole } from '../../types/database';
 
 export const AuthScreen: React.FC = () => {
-  const { signIn, signUp, isLoading, error, isConfigured, setDevRole } = useAuth();
+  const { signIn, signUp, signOut, refreshContext, user, profile, isLoading, error, isConfigured } = useAuth();
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -41,11 +40,75 @@ export const AuthScreen: React.FC = () => {
       if (res.error) {
         setLocalError(res.error.message);
       } else {
-        setLocalError('Account created! Please check your email or sign in.');
+        setLocalError('Account created! Please check your email to verify your account.');
         setMode('signin');
       }
     }
   };
+
+  // State: User is authenticated but waiting for property/role assignment
+  if (user) {
+    return (
+      <KeyboardAvoidingView
+        style={styles.keyboardContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <View style={styles.brandContainer}>
+            <View style={styles.logoBadge}>
+              <Text style={styles.logoText}>N</Text>
+            </View>
+            <Text style={styles.appName}>NESTIQ</Text>
+            <Text style={styles.appTagline}>Smart PG & Hostel Management</Text>
+          </View>
+
+          <View style={styles.card}>
+            <View style={styles.pendingBadge}>
+              <Text style={styles.pendingBadgeText}>ROLE ASSIGNMENT PENDING</Text>
+            </View>
+            <Text style={styles.pendingTitle}>
+              Welcome, {profile?.full_name || user.email}
+            </Text>
+            <Text style={styles.pendingDesc}>
+              You are signed in, but your account has not yet been assigned to an active PG Property or platform role.
+            </Text>
+
+            <View style={styles.pendingInfoBox}>
+              <Text style={styles.pendingInfoText}>
+                • If you are a <Text style={{ fontWeight: '700' }}>Tenant</Text>, ask your PG Admin to invite this email.
+              </Text>
+              <Text style={styles.pendingInfoText}>
+                • If you are a <Text style={{ fontWeight: '700' }}>PG Admin</Text>, you will be granted access by your property manager.
+              </Text>
+              <Text style={styles.pendingInfoText}>
+                • If you are the <Text style={{ fontWeight: '700' }}>Platform Super Admin</Text>, please execute the bootstrap SQL in your Supabase SQL Editor.
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.primaryButton}
+              onPress={refreshContext}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.primaryButtonText}>Check Status</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={signOut}
+              disabled={isLoading}
+            >
+              <Text style={styles.secondaryButtonText}>Sign Out</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -67,7 +130,7 @@ export const AuthScreen: React.FC = () => {
           <View style={styles.configNotice}>
             <Text style={styles.configTitle}>⚠️ Local Environment Mode</Text>
             <Text style={styles.configText}>
-              Supabase credentials not yet configured in .env. You can use the Quick Role Switcher below to test Super Admin, PG Admin, and Tenant dashboards.
+              Supabase credentials not yet configured in .env. Configure EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY to connect.
             </Text>
           </View>
         )}
@@ -176,36 +239,6 @@ export const AuthScreen: React.FC = () => {
               </Text>
             )}
           </TouchableOpacity>
-        </View>
-
-        {/* Development Quick Role Switcher */}
-        <View style={styles.devSection}>
-          <Text style={styles.devHeader}>Role Entry Testing (Milestone 1)</Text>
-          <Text style={styles.devSubheader}>
-            Test role-based navigation and placeholder screens:
-          </Text>
-          <View style={styles.devButtonGroup}>
-            <TouchableOpacity
-              style={[styles.devButton, { backgroundColor: '#8B5CF6' }]}
-              onPress={() => setDevRole('super_admin')}
-            >
-              <Text style={styles.devButtonText}>👑 Super Admin</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.devButton, { backgroundColor: '#2563EB' }]}
-              onPress={() => setDevRole('admin')}
-            >
-              <Text style={styles.devButtonText}>🏢 PG Admin</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.devButton, { backgroundColor: '#059669' }]}
-              onPress={() => setDevRole('tenant')}
-            >
-              <Text style={styles.devButtonText}>👤 Tenant</Text>
-            </TouchableOpacity>
-          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -371,40 +404,61 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
-  devSection: {
-    marginTop: 28,
-    padding: 16,
-    backgroundColor: '#EFF6FF',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
-  },
-  devHeader: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#1E40AF',
-  },
-  devSubheader: {
-    fontSize: 12,
-    color: '#3B82F6',
-    marginTop: 2,
-    marginBottom: 12,
-  },
-  devButtonGroup: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  devButton: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 10,
+  secondaryButton: {
+    height: 48,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
-  devButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
+  secondaryButtonText: {
+    color: '#475569',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  pendingBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    marginBottom: 12,
+  },
+  pendingBadgeText: {
+    color: '#92400E',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  pendingTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 8,
+  },
+  pendingDesc: {
+    fontSize: 14,
+    color: '#64748B',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  pendingInfoBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 20,
+    gap: 8,
+  },
+  pendingInfoText: {
+    fontSize: 13,
+    color: '#334155',
+    lineHeight: 18,
   },
 });
