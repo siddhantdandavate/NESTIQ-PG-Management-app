@@ -53,11 +53,11 @@ This document tracks every requirement from the authoritative specification ([NE
 
 | Req ID | Section | Expected Behavior | Current Implementation & Files | Compliance Status | Required Changes | Dependencies | Verification Method | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **PROP-01** | Phase 4 | Create PG Property with name, address, city, contact | Schema in `20261022000000_milestone1_auth_roles_rls.sql`; legacy UI in `legacy-web-prototype/src/components/properties/PropertiesView.tsx` | 🟡 Partially Implemented | Build native React Native property management screens & service | Milestone 1 schema | Create & view property flow | **Next Priority** |
-| **PROP-02** | Phase 4 | Edit property details (address, pincode, contact phone) | Schema in database migration | 🟡 Partially Implemented | Add Edit Property modal/screen in `features/properties/` | PROP-01 | Update mutation test | Planned |
-| **PROP-03** | Phase 4 | Associate authorized PG Admin with property | Handled via `pg_memberships` table | ✅ Implemented & Verified | Admin assignment UI in Super Admin & Property settings | SEC-02 | Membership verification | Planned |
+| **PROP-01** | Phase 4 | Create PG Property with name, address, city, contact | [propertyService.ts](file:///e:/pg%20app/features/properties/propertyService.ts), [CreatePropertyModal.tsx](file:///e:/pg%20app/features/properties/CreatePropertyModal.tsx) | ✅ Implemented & Verified | None | Milestone 1 schema | Property creation & membership linking test | **Complete** |
+| **PROP-02** | Phase 4 | Edit property details (address, pincode, contact phone) | [EditPropertyModal.tsx](file:///e:/pg%20app/features/properties/EditPropertyModal.tsx), [propertyService.ts](file:///e:/pg%20app/features/properties/propertyService.ts) | ✅ Implemented & Verified | None | PROP-01 | Property mutation & RLS update test | **Complete** |
+| **PROP-03** | Phase 4 | Associate authorized PG Admin with property | Handled via `pg_memberships` table & `createProperty` | ✅ Implemented & Verified | Admin assignment UI in Super Admin & Property settings | SEC-02 | Membership verification | **Complete** |
 | **PROP-04** | Phase 4 | Multi-property support for PG Admin | Multi-property switcher in [AdminDashboard.tsx](file:///e:/pg%20app/features/admin/AdminDashboard.tsx) | ✅ Implemented & Verified | Bind active property to room & tenant queries | PROP-01 | Switch property & inspect state | **Complete** |
-| **PROP-05** | Phase 4 | Property status (active / inactive) | Column in `pg_properties` table | 🟡 Partially Implemented | Add status toggle UI | PROP-01 | Status update test | Planned |
+| **PROP-05** | Phase 4 | Property status (active / inactive) | Column in `pg_properties` table & UI status pill | ✅ Implemented & Verified | None | PROP-01 | Status update test | **Complete** |
 
 ---
 
